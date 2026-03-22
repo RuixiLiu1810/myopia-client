@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>运维管理台 · 近视预测系统</title>
+  <link rel="stylesheet" href="/ops-static/styles.css" />
+</head>
+<body>
+
+<!-- ===== Login Screen ===== -->
+<div id="login-screen" class="login-screen">
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+  <div class="login-orb login-orb-3"></div>
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="login-eye-icon">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="8" y="8" width="32" height="32" rx="6" />
+          <circle cx="24" cy="24" r="8" fill="currentColor" opacity=".15" stroke="none"/>
+          <path d="M16 18l4 4-4 4M24 30h8" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <h1>运维管理台</h1>
+      <p>近视预测系统 · 用户、服务、数据、审计统一管理</p>
+    </div>
+    <div class="login-card">
+      <div class="login-card-title">Ops 登录</div>
+      <form id="login-form" autocomplete="on">
+        <div class="login-field">
+          <label for="login-username">用户名</label>
+          <input id="login-username" type="text" class="login-input" placeholder="请输入用户名" required autocomplete="username" />
+        </div>
+        <div class="login-field">
+          <label for="login-password">密码</label>
+          <input id="login-password" type="password" class="login-input" placeholder="请输入密码" required autocomplete="current-password" />
+        </div>
+        <div id="login-error" class="login-error hidden"></div>
+        <button type="submit" id="login-submit" class="btn-login">
+          <span id="login-submit-text">登 录</span>
+          <span id="login-spinner" class="spinner hidden"></span>
+        </button>
+        <div class="login-tools">
+          <button type="button" id="login-conn-settings" class="login-link-btn">连接设置</button>
+          <span class="login-tools-hint">当前：<code id="login-api-base-preview">/api</code></span>
+        </div>
+      </form>
+      <div class="login-hint">要求角色：ops 或 admin</div>
+    </div>
+    <p class="login-footer">仅供运维管理 · v2.0</p>
+  </div>
+</div>
+
+<!-- ===== App Shell ===== -->
+<div id="app-shell" class="app-shell hidden">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-start">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="global-search" type="text" class="search-input" placeholder="搜索…" autocomplete="off" />
+      </div>
+    </div>
+    <div class="topbar-end">
+      <span id="backend-pill" class="status-badge status-checking">
+        <span class="status-dot"></span><span id="backend-text">检测中…</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="4" y="4" width="16" height="16" rx="3"/>
+          <path d="M9 9l3 3-3 3M15 15h-3" stroke-width="2"/>
+        </svg>
+      </div>
+      <span class="sidebar-brand-name">运维管理台</span>
+    </div>
+    <div class="nav-section-title">菜单</div>
+    <ul class="nav-list">
+      <li>
+        <a class="nav-item active" data-view="overview-view" href="#" onclick="return false">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg></span>
+          <span class="nav-label">总览</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-view="users-view" href="#" onclick="return false">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="6" r="3"/><path d="M2 17v-1a5 5 0 0 1 10 0v1"/><line x1="16" y1="7" x2="16" y2="13" stroke-linecap="round"/><line x1="13" y1="10" x2="19" y2="10" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">用户与权限</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-view="data-view" href="#" onclick="return false">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="10" cy="5" rx="7" ry="3"/><path d="M3 5v10c0 1.66 3.13 3 7 3s7-1.34 7-3V5"/><path d="M3 10c0 1.66 3.13 3 7 3s7-1.34 7-3"/></svg></span>
+          <span class="nav-label">数据浏览</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-view="actions-view" href="#" onclick="return false">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="14" height="6" rx="1.5"/><rect x="3" y="11" width="14" height="6" rx="1.5"/><circle cx="6" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="14" r="1" fill="currentColor" stroke="none"/></svg></span>
+          <span class="nav-label">运维动作</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" data-view="audit-view" href="#" onclick="return false">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="10" y2="13"/></svg></span>
+          <span class="nav-label">审计中心</span>
+        </a>
+      </li>
+    </ul>
+    <div class="sidebar-spacer"></div>
+    <div id="user-info" class="sidebar-user">
+      <div class="sidebar-user-avatar" id="user-avatar">U</div>
+      <div class="sidebar-user-detail">
+        <span id="user-display-name" class="sidebar-user-name">未登录</span>
+        <span id="user-role-badge" class="role-badge"></span>
+      </div>
+      <button id="logout-btn" class="icon-btn" title="退出登录">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 17H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3"/><polyline points="11 15 15 10 11 5"/><line x1="15" y1="10" x2="6" y2="10"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Content Area -->
+  <main class="content-area" id="content-area">
+
+    <!-- Overview View -->
+    <section id="overview-view" class="ops-view active">
+      <div class="page-wrap">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">
+              <svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              Dashboard 总览
+            </h1>
+            <p class="page-subtitle">用户、数据、动作、审计统一管理</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline btn-sm" id="refresh-all-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              刷新全部
+            </button>
+          </div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="10" rx="2"/><line x1="7" y1="17" x2="17" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-backend">—</div><div class="stat-label">Backend 状态</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-process">—</div><div class="stat-label">Process Control</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-users">—</div><div class="stat-label">用户总数</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><polyline points="20 6 9 17 4 12" stroke-width="2"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-users-active">—</div><div class="stat-label">活跃用户</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-pred-total">—</div><div class="stat-label">24h 预测总量</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 13l4 4L19 7"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-pred-success-rate">—</div><div class="stat-label">24h 成功率</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-pred-failed">—</div><div class="stat-label">24h 失败事件</div></div></div>
+          <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></div><div class="stat-content"><div class="stat-value" id="kpi-pred-latency">—</div><div class="stat-label">24h 平均延迟</div></div></div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M21 14v7h-7"/><path d="M14 21l7-7"/><path d="M3 10V3h7"/><path d="M10 3L3 10"/><path d="M3 14v7h7"/><path d="M10 21l-7-7"/></svg>
+              快捷入口
+            </span>
+          </div>
+          <div class="info-card-body">
+            <div class="form-actions">
+              <button class="btn btn-outline btn-sm" id="quick-go-users">用户与权限</button>
+              <button class="btn btn-outline btn-sm" id="quick-go-data">数据浏览</button>
+              <button class="btn btn-outline btn-sm" id="quick-go-actions">运维动作</button>
+              <button class="btn btn-outline btn-sm" id="quick-go-audit">审计中心</button>
+            </div>
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3l-8.47-14.14a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              告警面板
+            </span>
+            <button class="btn btn-sm btn-outline" id="alerts-refresh-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              刷新告警
+            </button>
+          </div>
+          <div class="info-card-body">
+            <div class="et-table-scroll">
+              <table class="et-table">
+                <thead><tr><th>级别</th><th>标题</th><th>详情</th><th>建议动作</th><th>时间</th></tr></thead>
+                <tbody id="overview-alerts-body"><tr><td colspan="5" class="text-muted">加载中…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              健康状态详情
+            </span>
+            <button class="btn btn-sm btn-outline" id="health-refresh-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              刷新
+            </button>
+          </div>
+          <div class="info-card-body">
+            <div class="et-table-scroll">
+              <table class="et-table">
+                <thead><tr><th>项目</th><th>状态</th></tr></thead>
+                <tbody id="health-body"><tr><td colspan="2" class="text-muted">加载中…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Users View -->
+    <section id="users-view" class="ops-view">
+      <div class="page-wrap">
+        <div class="page-header">
+          <div><h1 class="page-title"><svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="19" y1="8" x2="23" y2="8"/><line x1="21" y1="6" x2="21" y2="10"/></svg>用户与权限</h1></div>
+          <div class="page-actions"><button class="btn btn-primary" id="open-create-user-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>创建用户</button></div>
+        </div>
+        <div class="form-card" id="create-user-card" style="display:none">
+          <div class="form-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="19" y1="8" x2="23" y2="8"/><line x1="21" y1="6" x2="21" y2="10"/></svg>创建新用户</div>
+          <div class="form-row">
+            <div class="form-field"><label class="form-label">用户名 <span style="color:var(--red-500)">*</span></label><input id="new-username" class="form-input" type="text" placeholder="用户名" autocomplete="off" /></div>
+            <div class="form-field"><label class="form-label">显示名 <span class="optional">可选</span></label><input id="new-display-name" class="form-input" type="text" placeholder="显示名称" autocomplete="off" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label class="form-label">初始密码 <span style="color:var(--red-500)">*</span></label><input id="new-password" class="form-input" type="password" placeholder="至少8位" autocomplete="new-password" /></div>
+            <div class="form-field"><label class="form-label">角色</label>
+              <select id="new-role" class="form-input">
+                <option value="doctor">doctor</option>
+                <option value="operator" selected>operator</option>
+                <option value="ops">ops</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-outline" id="cancel-create-user-btn">取消</button>
+            <button class="btn btn-primary" id="create-user-btn">创建用户</button>
+          </div>
+        </div>
+        <div class="entity-table">
+          <div class="et-toolbar">
+            <div class="et-search-wrap">
+              <svg class="et-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="users-filter-q" class="et-search" type="text" placeholder="搜索用户名/显示名" autocomplete="off" />
+            </div>
+            <div class="page-actions">
+              <select id="users-filter-role" class="form-input" style="min-width:100px">
+                <option value="">全部角色</option>
+                <option value="doctor">doctor</option>
+                <option value="operator">operator</option>
+                <option value="ops">ops</option>
+                <option value="admin">admin</option>
+              </select>
+              <select id="users-filter-active" class="form-input" style="min-width:100px">
+                <option value="">全部状态</option>
+                <option value="true">active</option>
+                <option value="false">inactive</option>
+              </select>
+              <button class="btn btn-outline btn-sm" id="apply-users-filter-btn">筛选</button>
+              <button class="btn btn-outline btn-sm" id="reload-users-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                刷新
+              </button>
+            </div>
+          </div>
+          <div class="et-table-scroll">
+            <table class="et-table">
+              <thead><tr><th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>状态</th><th>最近登录</th><th>操作</th></tr></thead>
+              <tbody id="users-body"><tr><td colspan="7" class="text-muted">加载中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions View -->
+    <section id="actions-view" class="ops-view">
+      <div class="page-wrap">
+        <div class="page-header">
+          <div><h1 class="page-title"><svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="7" r="3"/><circle cx="8" cy="17" r="3"/></svg>运维动作中心</h1><p class="page-subtitle">受控流程：预检查 -> 执行 -> 回执 -> 审计</p></div>
+          <div class="page-actions">
+            <button class="btn btn-outline btn-sm" id="actions-refresh-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              刷新动作区
+            </button>
+          </div>
+        </div>
+        <div class="info-card" style="margin-bottom:16px">
+          <div class="info-card-header"><span class="info-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v6"/><path d="M12 16v6"/><path d="M4.93 4.93l4.24 4.24"/><path d="M14.83 14.83l4.24 4.24"/><path d="M2 12h6"/><path d="M16 12h6"/><path d="M4.93 19.07l4.24-4.24"/><path d="M14.83 9.17l4.24-4.24"/></svg>动作任务</span></div>
+          <div class="info-card-body">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+              <div class="form-card" style="margin:0">
+                <div class="form-card-title">备份任务</div>
+                <div class="form-hint" style="margin-bottom:8px">建议每日离峰执行，完成后自动写审计。</div>
+                <div class="form-actions"><button class="btn btn-outline btn-sm" id="precheck-backup-btn">预检查</button><button class="btn btn-primary btn-sm" id="run-backup-btn">执行</button></div>
+              </div>
+              <div class="form-card" style="margin:0">
+                <div class="form-card-title">迁移检查</div>
+                <div class="form-hint" style="margin-bottom:8px">发布前校验数据库版本与结构一致性。</div>
+                <div class="form-actions"><button class="btn btn-outline btn-sm" id="precheck-migration-btn">预检查</button><button class="btn btn-primary btn-sm" id="run-migration-check-btn">执行</button></div>
+              </div>
+              <div class="form-card" style="margin:0">
+                <div class="form-card-title">索引维护</div>
+                <div class="form-hint" style="margin-bottom:8px">仅对白名单表开放，避免高峰时段执行。</div>
+                <div class="form-actions"><button class="btn btn-outline btn-sm" id="precheck-reindex-btn">预检查</button><button class="btn btn-primary btn-sm" id="run-reindex-btn">执行</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="info-card" style="margin-bottom:16px">
+          <div class="info-card-header"><span class="info-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>任务队列</span></div>
+          <div class="info-card-body">
+            <div class="action-jobs-toolbar">
+              <div class="form-field" style="margin:0;min-width:150px">
+                <label class="form-label" style="margin-bottom:4px">状态筛选</label>
+                <select id="action-jobs-status-filter" class="form-input">
+                  <option value="">全部</option>
+                  <option value="queued">queued</option>
+                  <option value="running">running</option>
+                  <option value="succeeded">succeeded</option>
+                  <option value="failed">failed</option>
+                </select>
+              </div>
+              <div class="form-field" style="margin:0;min-width:150px">
+                <label class="form-label" style="margin-bottom:4px">类型筛选</label>
+                <select id="action-jobs-type-filter" class="form-input">
+                  <option value="">全部</option>
+                  <option value="backup">backup</option>
+                  <option value="migration-check">migration-check</option>
+                  <option value="reindex">reindex</option>
+                </select>
+              </div>
+              <button class="btn btn-outline btn-sm" id="action-jobs-apply-btn" type="button">应用筛选</button>
+              <button class="btn btn-outline btn-sm" id="action-jobs-reset-btn" type="button">重置</button>
+            </div>
+            <div class="et-table-scroll">
+              <table class="et-table">
+                <thead><tr><th>任务ID</th><th>类型</th><th>发起人</th><th>状态</th><th>开始时间</th><th>备注</th><th>详情</th></tr></thead>
+                <tbody id="actions-jobs-body"><tr><td colspan="7" class="text-muted">当前无动作任务</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="form-card">
+          <div class="form-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/></svg>Server 生命周期控制（可选）</div>
+          <div id="server-control-note" class="form-hint" style="margin-bottom:12px">正在检测控制能力…</div>
+          <div class="form-row">
+            <div class="form-field"><label class="form-label">Backend Host</label><input id="server-host" class="form-input" type="text" placeholder="127.0.0.1" /></div>
+            <div class="form-field"><label class="form-label">Backend Port</label><input id="server-port" class="form-input" type="number" min="1" max="65535" placeholder="8000" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label class="form-label">Model Dir <span class="optional">可选</span></label><input id="server-model-dir" class="form-input" type="text" placeholder="模型目录" /></div>
+            <div class="form-field"><label class="form-label">Device <span class="optional">可选</span></label><input id="server-device" class="form-input" type="text" placeholder="cpu / cuda" /></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="server-start-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              启动 Server
+            </button>
+            <button class="btn btn-danger" id="server-stop-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+              停止 Server
+            </button>
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-header"><span class="info-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/></svg>Server 状态详情（只读）</span></div>
+          <div class="info-card-body">
+            <div class="et-table-scroll">
+              <table class="et-table">
+                <thead><tr><th>字段</th><th>值</th></tr></thead>
+                <tbody id="server-status-body"><tr><td colspan="2" class="text-muted">加载中…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data View -->
+    <section id="data-view" class="ops-view">
+      <div class="page-wrap">
+        <div class="page-header">
+          <div><h1 class="page-title"><svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>数据浏览</h1><p class="page-subtitle">白名单只读模式</p></div>
+        </div>
+        <div class="form-card" style="margin-bottom:16px">
+          <div class="form-row" style="align-items:flex-end">
+            <div class="form-field"><label class="form-label">选择表</label><select id="table-select" class="form-input"></select></div>
+            <div class="form-field"><label class="form-label">Limit</label><input id="rows-limit" class="form-input" type="number" value="20" min="1" max="200" /></div>
+            <div class="form-field"><label class="form-label">Offset</label><input id="rows-offset" class="form-input" type="number" value="0" min="0" /></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-outline btn-sm" id="reload-tables-btn">刷新表列表</button>
+            <button class="btn btn-primary btn-sm" id="reload-table-btn">加载表数据</button>
+            <button class="btn btn-outline btn-sm" id="export-table-btn">导出当前页 CSV</button>
+          </div>
+          <div class="form-hint" style="margin-top:8px">导出遵循当前表、limit、offset 参数；单次最多导出 5000 行。</div>
+        </div>
+        <div class="info-card" style="margin-bottom:16px">
+          <div class="info-card-header"><span class="info-card-title">表结构 Schema</span></div>
+          <div class="info-card-body">
+            <div class="et-table-scroll">
+              <table class="et-table">
+                <thead><tr><th>字段名</th><th>类型</th><th>可空</th><th>主键</th></tr></thead>
+                <tbody id="schema-body"><tr><td colspan="4" class="text-muted">请选择表</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-header"><span class="info-card-title">表数据 Rows</span></div>
+          <div class="info-card-body">
+            <div class="et-table-scroll">
+              <table class="et-table">
+                <thead id="rows-head"></thead>
+                <tbody id="rows-body"><tr><td class="text-muted">请选择表并加载</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Audit View -->
+    <section id="audit-view" class="ops-view">
+      <div class="page-wrap">
+        <div class="page-header">
+          <div><h1 class="page-title"><svg class="page-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>审计中心</h1></div>
+          <div class="page-actions">
+            <button class="btn btn-outline btn-sm" id="reload-audit-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              刷新
+            </button>
+          </div>
+        </div>
+        <div class="entity-table">
+          <div class="et-toolbar">
+            <div class="et-search-wrap">
+              <svg class="et-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="audit-filter" class="et-search" type="text" placeholder="关键词（action/actor/target）" autocomplete="off" />
+            </div>
+            <div class="page-actions">
+              <input id="audit-actor" class="form-input" type="text" placeholder="执行人（可选）" style="min-width:120px" />
+              <input id="audit-action" class="form-input" type="text" placeholder="动作（可选）" style="min-width:120px" />
+              <input id="audit-target" class="form-input" type="text" placeholder="目标类型（可选）" style="min-width:120px" />
+              <input id="audit-date-from" class="form-input" type="datetime-local" style="min-width:180px" />
+              <input id="audit-date-to" class="form-input" type="datetime-local" style="min-width:180px" />
+              <div class="audit-quick-range" aria-label="快捷时间范围">
+                <button class="btn btn-outline btn-sm audit-preset-btn" id="audit-preset-1h" type="button">近1小时</button>
+                <button class="btn btn-outline btn-sm audit-preset-btn" id="audit-preset-24h" type="button">近24小时</button>
+                <button class="btn btn-outline btn-sm audit-preset-btn" id="audit-preset-7d" type="button">近7天</button>
+              </div>
+              <div class="form-field" style="flex-direction:row;align-items:center;gap:6px"><label class="form-label" style="margin:0;white-space:nowrap">Limit</label><input id="audit-limit" class="form-input" type="number" value="100" min="1" max="200" style="width:70px" /></div>
+              <div class="form-field" style="flex-direction:row;align-items:center;gap:6px"><label class="form-label" style="margin:0;white-space:nowrap">Offset</label><input id="audit-offset" class="form-input" type="number" value="0" min="0" style="width:70px" /></div>
+              <button class="btn btn-outline btn-sm" id="apply-audit-filter-btn">应用筛选</button>
+              <button class="btn btn-outline btn-sm" id="reset-audit-filter-btn">重置</button>
+              <button class="btn btn-outline btn-sm" id="export-audit-btn">导出 CSV</button>
+            </div>
+          </div>
+          <div class="et-subbar">
+            <div id="audit-filter-summary" class="et-subbar-left">当前筛选：全部记录</div>
+            <div id="audit-result-count" class="et-subbar-right">0 条</div>
+          </div>
+          <div class="et-table-scroll">
+            <table class="et-table">
+              <thead><tr><th>ID</th><th>时间</th><th>动作</th><th>执行人</th><th>目标</th><th>详情</th></tr></thead>
+              <tbody id="audit-body"><tr><td colspan="6" class="text-muted">加载中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<!-- ===== Modal Root ===== -->
+<div id="modal-root"></div>
+
+<!-- ===== Toast Root ===== -->
+<div id="toast-root" class="toast-root"></div>
+
+<!-- ===== Message Bar ===== -->
+<div id="ops-msg" class="ops-msg hidden"></div>
+
+<script src="/ops-static/dashboard.js"></script>
+</body>
+</html>
