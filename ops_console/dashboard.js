@@ -108,6 +108,39 @@ function absoluteApiBase(base) {
   return `${window.location.origin}${normalized.replace(/\/+$/, "")}/`;
 }
 
+function isSetupRequiredPayload(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  if (payload.setup && payload.setup.setup_required === true) return true;
+  return String(payload.status || "").toLowerCase() === "setup_required";
+}
+
+function buildSetupUrlFromApiBase(apiBase) {
+  try {
+    const normalized = normalizeApiBase(apiBase || opsSettings.api_base || OPS_DEFAULT_SETTINGS.api_base);
+    const absBase = absoluteApiBase(normalized);
+    const url = new URL(absBase);
+    let path = url.pathname.replace(/\/+$/, "");
+    if (path.toLowerCase().endsWith("/api")) {
+      path = path.slice(0, -4);
+    }
+    const root = url.origin + (path ? (path + "/") : "/");
+    return new URL("setup", root).toString();
+  } catch (_err) {
+    return "/setup";
+  }
+}
+
+function createSetupRequiredError(detail, apiBase) {
+  const err = new Error(String(detail || "server setup required"));
+  err.code = "SERVER_SETUP_REQUIRED";
+  err.setup_url = buildSetupUrlFromApiBase(apiBase);
+  return err;
+}
+
+function isSetupRequiredError(err) {
+  return !!(err && err.code === "SERVER_SETUP_REQUIRED");
+}
+
 function loadOpsSettings() {
   try {
     const raw = localStorage.getItem(OPS_SETTINGS_KEY);
@@ -207,9 +240,17 @@ function renderLoginApiBaseHint() {
 async function testOpsApiBaseHealth(apiBase) {
   const url = buildApiUrl("healthz", {}, apiBase);
   const resp = await fetch(url, { method: "GET", cache: "no-store" });
+  let data = {};
+  try {
+    data = await resp.json();
+  } catch (_err) {}
+  if (isSetupRequiredPayload(data)) {
+    return { setup_required: true, setup_url: buildSetupUrlFromApiBase(apiBase) };
+  }
   if (!resp.ok) {
     throw new Error("健康检查失败（HTTP " + resp.status + "）");
   }
+  return { setup_required: false };
 }
 
 function openLoginConnectionSettingsModal() {
@@ -242,9 +283,14 @@ function openLoginConnectionSettingsModal() {
       testBtn.disabled = true;
       testBtn.textContent = "测试中…";
       try {
-        await testOpsApiBaseHealth(value);
-        msgEl.className = "badge badge-green";
-        msgEl.textContent = "连接成功";
+        const result = await testOpsApiBaseHealth(value);
+        if (result && result.setup_required) {
+          msgEl.className = "badge badge-amber";
+          msgEl.textContent = "服务端可达，但尚未完成首次安装：" + String(result.setup_url || "/setup");
+        } else {
+          msgEl.className = "badge badge-green";
+          msgEl.textContent = "连接成功";
+        }
       } catch (err) {
         msgEl.className = "error-msg";
         msgEl.textContent = "连接失败：" + String(err && err.message ? err.message : err);
@@ -373,6 +419,9 @@ async function apiFetch(path, options) {
 
   if (!resp.ok) {
     const detail = data && data.detail ? data.detail : "请求失败 HTTP " + resp.status;
+    if (resp.status === 503 && isSetupRequiredPayload(data)) {
+      throw createSetupRequiredError(detail, opsSettings.api_base || OPS_DEFAULT_SETTINGS.api_base);
+    }
     if (resp.status === 401) {
       clearAuth();
       showLoginScreen();
@@ -424,10 +473,14 @@ async function apiDownload(path, options) {
 
   if (!resp.ok) {
     let detail = "请求失败 HTTP " + resp.status;
+    let data = null;
     try {
-      const data = await resp.json();
+      data = await resp.json();
       if (data && data.detail) detail = String(data.detail);
     } catch (_err) {}
+    if (resp.status === 503 && isSetupRequiredPayload(data)) {
+      throw createSetupRequiredError(detail, opsSettings.api_base || OPS_DEFAULT_SETTINGS.api_base);
+    }
     if (resp.status === 401) {
       clearAuth();
       showLoginScreen();
@@ -1119,7 +1172,11 @@ async function doLogin() {
     await refreshAll();
     setMsg("登录成功", "ok");
   } catch (err) {
-    showLoginError("登录失败：" + String(err.message || err));
+    if (isSetupRequiredError(err)) {
+      showLoginError("服务端尚未初始化，请先访问 " + String(err.setup_url || "/setup") + " 完成安装");
+    } else {
+      showLoginError("登录失败：" + String(err.message || err));
+    }
   } finally {
     if (submitBtn) submitBtn.disabled = false;
     if (submitText) submitText.textContent = "登 录";

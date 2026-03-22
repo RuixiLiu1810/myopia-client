@@ -135,6 +135,39 @@ function buildApiUrlWithBase(pathname, base, query = {}) {
   return url.toString();
 }
 
+function isSetupRequiredPayload(payload) {
+  if (!payload || typeof payload !== 'object') return false;
+  if (payload.setup && payload.setup.setup_required === true) return true;
+  return String(payload.status || '').toLowerCase() === 'setup_required';
+}
+
+function buildSetupUrlWithBase(apiBase) {
+  try {
+    const normalized = normalizeApiBase(apiBase || settings.api_base || DEFAULT_SETTINGS.api_base);
+    const absBase = absoluteApiBase(normalized);
+    const url = new URL(absBase);
+    let path = url.pathname.replace(/\/+$/, '');
+    if (path.toLowerCase().endsWith('/api')) {
+      path = path.slice(0, -4);
+    }
+    const root = url.origin + (path ? (path + '/') : '/');
+    return new URL('setup', root).toString();
+  } catch (_) {
+    return '/setup';
+  }
+}
+
+function createSetupRequiredError(detail, apiBase) {
+  const err = new Error(String(detail || 'server setup required'));
+  err.code = 'SERVER_SETUP_REQUIRED';
+  err.setup_url = buildSetupUrlWithBase(apiBase);
+  return err;
+}
+
+function isSetupRequiredError(err) {
+  return !!(err && err.code === 'SERVER_SETUP_REQUIRED');
+}
+
 function loadAuthState() {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -236,9 +269,17 @@ function renderLoginApiBaseHint() {
 async function testApiBaseHealth(apiBase) {
   const url = buildApiUrlWithBase('/healthz', apiBase);
   const resp = await fetch(url, { method: 'GET', cache: 'no-store' });
+  let data = {};
+  try {
+    data = await resp.json();
+  } catch (_) {}
+  if (isSetupRequiredPayload(data)) {
+    return { setup_required: true, setup_url: buildSetupUrlWithBase(apiBase) };
+  }
   if (!resp.ok) {
     throw new Error('健康检查失败（HTTP ' + resp.status + '）');
   }
+  return { setup_required: false };
 }
 
 function openLoginConnectionSettingsModal() {
@@ -267,9 +308,14 @@ function openLoginConnectionSettingsModal() {
       testBtn.disabled = true;
       testBtn.textContent = '测试中…';
       try {
-        await testApiBaseHealth(value);
-        testMsgEl.className = 'badge badge-green';
-        testMsgEl.textContent = '连接成功';
+        const result = await testApiBaseHealth(value);
+        if (result && result.setup_required) {
+          testMsgEl.className = 'badge badge-amber';
+          testMsgEl.textContent = '服务端可达，但尚未完成首次安装：' + String(result.setup_url || '/setup');
+        } else {
+          testMsgEl.className = 'badge badge-green';
+          testMsgEl.textContent = '连接成功';
+        }
       } catch (err) {
         testMsgEl.className = 'error-msg';
         testMsgEl.textContent = '连接失败：' + String(err.message || err);
@@ -332,7 +378,11 @@ async function doLoginFromScreen() {
     showToast('登录成功', 'success');
     resolveRoute();
   } catch (err) {
-    showLoginError('登录失败：' + String(err.message || err));
+    if (isSetupRequiredError(err)) {
+      showLoginError('服务端尚未初始化，请先访问 ' + String(err.setup_url || '/setup') + ' 完成安装');
+    } else {
+      showLoginError('登录失败：' + String(err.message || err));
+    }
   } finally {
     if (submitBtn) submitBtn.disabled = false;
     if (submitText) submitText.textContent = '登 录';
@@ -399,6 +449,9 @@ async function apiFetch(path, options = {}) {
   }
   if (!resp.ok) {
     const detail = data && data.detail ? data.detail : ('请求失败 (HTTP ' + resp.status + ')');
+    if (resp.status === 503 && isSetupRequiredPayload(data)) {
+      throw createSetupRequiredError(detail, settings.api_base || DEFAULT_SETTINGS.api_base);
+    }
     if (resp.status === 401) {
       clearAuthState();
       if (!String(path || '').startsWith('/v1/auth/')) {
@@ -436,10 +489,14 @@ async function apiFetchBlob(path, options = {}) {
   const resp = await fetch(url, fetchOptions);
   if (!resp.ok) {
     var detail = '请求失败 (HTTP ' + resp.status + ')';
+    var data = null;
     try {
-      var data = await resp.json();
+      data = await resp.json();
       if (data && data.detail) detail = String(data.detail);
     } catch (_) {}
+    if (resp.status === 503 && isSetupRequiredPayload(data)) {
+      throw createSetupRequiredError(detail, settings.api_base || DEFAULT_SETTINGS.api_base);
+    }
     if (resp.status === 401) {
       clearAuthState();
       if (!String(path || '').startsWith('/v1/auth/')) {
@@ -582,9 +639,18 @@ async function checkHealth() {
   if (statusText) statusText.textContent = '检测中…';
   try {
     const resp = await fetch(buildApiUrl('/healthz'), { cache: 'no-store' });
+    let data = {};
+    try {
+      data = await resp.json();
+    } catch (_) {}
     if (resp.ok) {
-      badge.className = 'status-badge status-ok';
-      if (statusText) statusText.textContent = '已连接';
+      if (isSetupRequiredPayload(data)) {
+        badge.className = 'status-badge status-error';
+        if (statusText) statusText.textContent = '待初始化';
+      } else {
+        badge.className = 'status-badge status-ok';
+        if (statusText) statusText.textContent = '已连接';
+      }
     } else {
       badge.className = 'status-badge status-error';
       if (statusText) statusText.textContent = '连接异常';
